@@ -80,7 +80,19 @@ public class DataService : IDataService
 
         _db.SensorMeasurements.Add(entity);
 
-        if (status == "CRITICAL")
+        if (status == "ERROR")
+        {
+            _db.Alerts.Add(new AlertEntity
+            {
+                ProductKey = productKey,
+                Severity = "WARNING",
+                Type = "SENSOR_ERROR",
+                Message = "En eller flere sensorer rapporterer ugyldige værdier (mulig sensorafkobling).",
+                Timestamp = DateTime.UtcNow,
+                Acknowledged = false
+            });
+        }
+        else if (status == "CRITICAL")
         {
             _db.Alerts.Add(new AlertEntity
             {
@@ -106,7 +118,7 @@ public class DataService : IDataService
         if (m.SandTemp >= s.MaxSandTemp)
             return "CRITICAL";
 
-        if (m.SandTemp >= s.MaxSandTemp * 0.9f)
+        if (m.SandTemp < 0)
             return "WARNING";
 
         return "OK";

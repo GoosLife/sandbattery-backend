@@ -66,10 +66,6 @@ public class DataController : ControllerBase
         if (string.IsNullOrEmpty(body.Timestamp))
             return BadRequest(new { error = "Feltet 'timestamp' er påkrævet" });
 
-        // Reject obviously invalid sensor readings (e.g. disconnected DS18B20 at -127 °C)
-        if (body.SandTemp <= -126 || body.WaterTempIn <= -126 || body.WaterTempOut <= -126)
-            return UnprocessableEntity(new { error = "Sensorværdier uden for acceptabelt interval" });
-
         var saved = await _dataService.AddMeasurementAsync(ProductKey, body);
         return StatusCode(StatusCodes.Status201Created, saved);
     }
