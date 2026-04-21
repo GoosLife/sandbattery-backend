@@ -28,15 +28,6 @@ public class ControlController : ControllerBase
     [HttpPost("pump")]
     public async Task<IActionResult> ControlPump([FromBody] PumpCommandRequest body)
     {
-        var validActions = new[] { "start", "stop" };
-        var validSources = new[] { "manual", "rule" };
-
-        if (!validActions.Contains(body.Action))
-            return BadRequest(new { error = "Ugyldig action-værdi. Gyldige værdier: start, stop" });
-
-        if (!validSources.Contains(body.Source))
-            return BadRequest(new { error = "Ugyldig source-værdi. Gyldige værdier: manual, rule" });
-
         var (success, result, _) = await _controlService.ControlPumpAsync(ProductKey, body.Action, body.Source);
 
         if (!success)
@@ -50,15 +41,6 @@ public class ControlController : ControllerBase
     [HttpPost("heater")]
     public async Task<IActionResult> ControlHeater([FromBody] HeaterCommandRequest body)
     {
-        var validActions = new[] { "on", "off" };
-        var validSources = new[] { "manual", "rule" };
-
-        if (!validActions.Contains(body.Action))
-            return BadRequest(new { error = "Ugyldig action-værdi. Gyldige værdier: on, off" });
-
-        if (!validSources.Contains(body.Source))
-            return BadRequest(new { error = "Ugyldig source-værdi. Gyldige værdier: manual, rule" });
-
         var (success, result, tempExceeded) =
             await _controlService.ControlHeaterAsync(ProductKey, body.Action, body.Source);
 

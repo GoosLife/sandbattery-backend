@@ -1,4 +1,5 @@
 using sandbattery_backend.Data.Entities;
+using sandbattery_backend.Models;
 using sandbattery_backend.Services;
 using sandbattery_backend.Tests.Helpers;
 
@@ -18,7 +19,7 @@ public class ControlServiceTests
         var service = new ControlService(db);
 
         var (success, result, tempExceeded) =
-            await service.ControlPumpAsync(ProductKey, "start", "manual");
+            await service.ControlPumpAsync(ProductKey, PumpAction.start, CommandSource.manual);
 
         Assert.True(success);
         Assert.False(tempExceeded);
@@ -38,8 +39,8 @@ public class ControlServiceTests
         await DbContextFactory.SeedDeviceAsync(db, ProductKey);
         var service = new ControlService(db);
 
-        await service.ControlPumpAsync(ProductKey, "start", "manual");
-        await service.ControlPumpAsync(ProductKey, "stop", "manual");
+        await service.ControlPumpAsync(ProductKey, PumpAction.start, CommandSource.manual);
+        await service.ControlPumpAsync(ProductKey, PumpAction.stop, CommandSource.manual);
 
         var status = db.ActuatorStatuses.Single(a => a.ProductKey == ProductKey && a.Actuator == "pump");
         Assert.False(status.Active);
@@ -52,9 +53,9 @@ public class ControlServiceTests
         await DbContextFactory.SeedDeviceAsync(db, ProductKey);
         var service = new ControlService(db);
 
-        await service.ControlPumpAsync(ProductKey, "start", "manual");
-        await service.ControlPumpAsync(ProductKey, "stop",  "manual");
-        await service.ControlPumpAsync(ProductKey, "start", "rule");
+        await service.ControlPumpAsync(ProductKey, PumpAction.start, CommandSource.manual);
+        await service.ControlPumpAsync(ProductKey, PumpAction.stop, CommandSource.manual);
+        await service.ControlPumpAsync(ProductKey, PumpAction.start, CommandSource.rule);
 
         var rows = db.ActuatorStatuses.Where(a => a.ProductKey == ProductKey && a.Actuator == "pump").ToList();
         Assert.Single(rows);
@@ -76,7 +77,7 @@ public class ControlServiceTests
 
         var service = new ControlService(db);
         var (success, result, tempExceeded) =
-            await service.ControlHeaterAsync(ProductKey, "on", "manual");
+            await service.ControlHeaterAsync(ProductKey, HeaterAction.on, CommandSource.manual);
 
         Assert.True(success);
         Assert.False(tempExceeded);
@@ -99,7 +100,7 @@ public class ControlServiceTests
 
         var service = new ControlService(db);
         var (success, result, tempExceeded) =
-            await service.ControlHeaterAsync(ProductKey, "on", "manual");
+            await service.ControlHeaterAsync(ProductKey, HeaterAction.on, CommandSource.manual);
 
         Assert.False(success);
         Assert.True(tempExceeded);
@@ -121,7 +122,7 @@ public class ControlServiceTests
 
         var service = new ControlService(db);
         var (success, result, tempExceeded) =
-            await service.ControlHeaterAsync(ProductKey, "off", "rule");
+            await service.ControlHeaterAsync(ProductKey, HeaterAction.off, CommandSource.rule);
 
         Assert.True(success);
         Assert.False(tempExceeded);
@@ -137,7 +138,7 @@ public class ControlServiceTests
         var service = new ControlService(db);
 
         var (success, _, tempExceeded) =
-            await service.ControlHeaterAsync(ProductKey, "on", "manual");
+            await service.ControlHeaterAsync(ProductKey, HeaterAction.on, CommandSource.manual);
 
         Assert.True(success);
         Assert.False(tempExceeded);
@@ -169,8 +170,8 @@ public class ControlServiceTests
         await db.SaveChangesAsync();
 
         var service = new ControlService(db);
-        await service.ControlPumpAsync(ProductKey, "start", "rule");
-        await service.ControlHeaterAsync(ProductKey, "on", "rule");
+        await service.ControlPumpAsync(ProductKey, PumpAction.start, CommandSource.rule);
+        await service.ControlHeaterAsync(ProductKey, HeaterAction.on, CommandSource.rule);
 
         var status = await service.GetSystemStatusAsync(ProductKey);
 
