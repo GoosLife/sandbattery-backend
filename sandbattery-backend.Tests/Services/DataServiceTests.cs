@@ -227,7 +227,7 @@ public class DataServiceTests
 
         var service = new DataService(db);
         var history = await service.GetMeasurementHistoryAsync(
-            ProductKey, base_.AddMinutes(-1), base_.AddHours(3), "1h", 1000);
+            ProductKey, base_.AddMinutes(-1), base_.AddHours(3), MeasurementInterval.OneHour, 1000);
 
         Assert.Equal(3, history.Count);
     }
