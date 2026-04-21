@@ -19,9 +19,9 @@ public class ElectricityPriceFetcherService : BackgroundService
         IHttpClientFactory httpClientFactory,
         ILogger<ElectricityPriceFetcherService> logger)
     {
-        _scopeFactory      = scopeFactory;
+        _scopeFactory = scopeFactory;
         _httpClientFactory = httpClientFactory;
-        _logger            = logger;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,7 +35,7 @@ public class ElectricityPriceFetcherService : BackgroundService
 
     private async Task FetchAllAsync(CancellationToken ct)
     {
-        var today    = DateTime.UtcNow.Date;
+        var today = DateTime.UtcNow.Date;
         var tomorrow = today.AddDays(1);
 
         foreach (var area in Areas)
@@ -47,7 +47,7 @@ public class ElectricityPriceFetcherService : BackgroundService
 
     private async Task FetchForDateAsync(DateTime date, string area, CancellationToken ct)
     {
-        var url    = $"https://www.elprisenligenu.dk/api/v1/prices/{date:yyyy}/{date:MM-dd}_{area}.json";
+        var url = $"https://www.elprisenligenu.dk/api/v1/prices/{date:yyyy}/{date:MM-dd}_{area}.json";
         var client = _httpClientFactory.CreateClient();
 
         HttpResponseMessage response;
@@ -82,8 +82,8 @@ public class ElectricityPriceFetcherService : BackgroundService
         if (entries is null || entries.Count == 0) return;
 
         using var scope = _scopeFactory.CreateScope();
-        var db          = scope.ServiceProvider.GetRequiredService<SandbatteryDbContext>();
-        var dateStr     = date.ToString("yyyy-MM-dd");
+        var db = scope.ServiceProvider.GetRequiredService<SandbatteryDbContext>();
+        var dateStr = date.ToString("yyyy-MM-dd");
 
         var existing = await db.ElectricityPrices
             .Include(e => e.Entries)
@@ -105,8 +105,8 @@ public class ElectricityPriceFetcherService : BackgroundService
         db.PriceEntries.AddRange(entries.Select(e => new PriceEntryEntity
         {
             ElectricityPriceId = existing.Id,
-            Hour               = e.TimeStart.UtcDateTime,
-            PriceDkkKwh        = e.DkkPerKwh
+            Hour = e.TimeStart.UtcDateTime,
+            PriceDkkKwh = e.DkkPerKwh
         }));
 
         await db.SaveChangesAsync(ct);

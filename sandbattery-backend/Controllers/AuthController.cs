@@ -30,9 +30,9 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            valid        = true,
-            device_name  = device.DeviceName,
-            product_key  = device.ProductKey
+            valid = true,
+            device_name = device.DeviceName,
+            product_key = device.ProductKey
         });
     }
 }

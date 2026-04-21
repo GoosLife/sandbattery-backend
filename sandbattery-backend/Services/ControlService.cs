@@ -22,7 +22,7 @@ public class ControlService : IControlService
         return new SystemStatus
         {
             Heater = heater is null ? new ActuatorStatus { LastChanged = now } : MapToDto(heater),
-            Pump   = pump   is null ? new ActuatorStatus { LastChanged = now } : MapToDto(pump)
+            Pump = pump is null ? new ActuatorStatus { LastChanged = now } : MapToDto(pump)
         };
     }
 
@@ -91,26 +91,26 @@ public class ControlService : IControlService
 
         var eventType = (actuator, active) switch
         {
-            ("pump",   true)  => "pump_start",
-            ("pump",   false) => "pump_stop",
-            ("heater", true)  => "heat_on",
-            _                 => "heat_off"
+            ("pump", true) => "pump_start",
+            ("pump", false) => "pump_stop",
+            ("heater", true) => "heat_on",
+            _ => "heat_off"
         };
 
         var description = (actuator, active) switch
         {
-            ("pump",   true)  => "Vandpumpe startet",
-            ("pump",   false) => "Vandpumpe stoppet",
-            ("heater", true)  => "Varmelegeme aktiveret",
-            _                 => "Varmelegeme deaktiveret"
+            ("pump", true) => "Vandpumpe startet",
+            ("pump", false) => "Vandpumpe stoppet",
+            ("heater", true) => "Varmelegeme aktiveret",
+            _ => "Varmelegeme deaktiveret"
         };
 
         var ev = new EventEntity
         {
-            ProductKey  = productKey,
-            Type        = eventType,
-            Source      = source,
-            Timestamp   = DateTime.UtcNow,
+            ProductKey = productKey,
+            Type = eventType,
+            Source = source,
+            Timestamp = DateTime.UtcNow,
             Description = description
         };
         _db.Events.Add(ev);
@@ -121,8 +121,8 @@ public class ControlService : IControlService
 
     private static ActuatorStatus MapToDto(ActuatorStatusEntity e) => new()
     {
-        Active      = e.Active,
-        Source      = e.Source,
+        Active = e.Active,
+        Source = e.Source,
         LastChanged = e.LastChanged.ToString("o")
     };
 }

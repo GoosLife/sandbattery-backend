@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using sandbattery_backend.Filters;
 using sandbattery_backend.Models;
 using sandbattery_backend.Services;
+using static sandbattery_backend.Models.MeasurementIntervalExtensions;
 
 namespace sandbattery_backend.Controllers;
 
@@ -42,14 +43,18 @@ public class DataController : ControllerBase
         if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate))
             return BadRequest(new { error = "Ugyldigt datoformat – brug ISO 8601" });
 
-        var validIntervals = new[] { "1m", "5m", "15m", "30m", "1h", "6h", "1d" };
-        if (interval is not null && !validIntervals.Contains(interval))
-            return BadRequest(new { error = $"Ugyldigt interval. Gyldige værdier: {string.Join(", ", validIntervals)}" });
+        MeasurementInterval? parsedInterval = null;
+        if (interval is not null)
+        {
+            parsedInterval = TryParse(interval);
+            if (parsedInterval is null)
+                return BadRequest(new { error = "Ugyldigt interval. Gyldige værdier: 1m, 5m, 15m, 30m, 1h, 6h, 1d" });
+        }
 
         limit = Math.Clamp(limit, 1, 5000);
 
         var history = await _dataService.GetMeasurementHistoryAsync(
-            ProductKey, fromDate.ToUniversalTime(), toDate.ToUniversalTime(), interval, limit);
+            ProductKey, fromDate.ToUniversalTime(), toDate.ToUniversalTime(), parsedInterval, limit);
 
         return Ok(history);
     }

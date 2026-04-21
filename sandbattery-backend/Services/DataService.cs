@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using sandbattery_backend.Data;
 using sandbattery_backend.Data.Entities;
 using sandbattery_backend.Models;
+using static sandbattery_backend.Models.MeasurementIntervalExtensions;
 
 namespace sandbattery_backend.Services;
 
@@ -23,7 +24,7 @@ public class DataService : IDataService
     }
 
     public async Task<DataHistory> GetMeasurementHistoryAsync(
-        string productKey, DateTime from, DateTime to, string? interval, int limit)
+        string productKey, DateTime from, DateTime to, MeasurementInterval? interval, int limit)
     {
         var entities = await _db.SensorMeasurements
             .Where(m => m.ProductKey == productKey && m.Timestamp >= from && m.Timestamp <= to)
@@ -32,7 +33,7 @@ public class DataService : IDataService
 
         if (interval is not null)
         {
-            var span = ParseInterval(interval);
+            var span = interval.Value.ToTimeSpan();
             var sampled = new List<SensorMeasurementEntity>();
             DateTime? lastTs = null;
             foreach (var e in entities)
@@ -51,7 +52,7 @@ public class DataService : IDataService
         {
             From = from.ToString("o"),
             To = to.ToString("o"),
-            Interval = interval,
+            Interval = interval?.ToApiString(),
             Count = page.Count,
             Data = page.Select(MapToDto).ToList()
         };
@@ -111,17 +112,6 @@ public class DataService : IDataService
         return "OK";
     }
 
-    private static TimeSpan ParseInterval(string interval) => interval switch
-    {
-        "1m"  => TimeSpan.FromMinutes(1),
-        "5m"  => TimeSpan.FromMinutes(5),
-        "15m" => TimeSpan.FromMinutes(15),
-        "30m" => TimeSpan.FromMinutes(30),
-        "1h"  => TimeSpan.FromHours(1),
-        "6h"  => TimeSpan.FromHours(6),
-        "1d"  => TimeSpan.FromDays(1),
-        _     => TimeSpan.FromMinutes(1)
-    };
 
     private static SensorMeasurement MapToDto(SensorMeasurementEntity e) => new()
     {
