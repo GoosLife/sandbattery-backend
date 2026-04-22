@@ -1,0 +1,15 @@
+﻿version: "3.9"
+
+services:
+  sandbattery-backend:
+    container_name: sandbattery-backend-compose
+    build:
+      context: ..
+      dockerfile: sandbattery-backend/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: unless-stopped
