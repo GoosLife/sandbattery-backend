@@ -1,0 +1,16 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: sandbattery-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: sandbattery
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - sandbattery-db-data:/var/lib/mysql
+
+volumes:
+  sandbattery-db-data:
