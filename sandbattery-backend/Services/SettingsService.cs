@@ -30,12 +30,12 @@ public class SettingsService : ISettingsService
 
         var updated = new List<string>();
 
-        if (request.MaxSandTemp.HasValue)        { entity.MaxSandTemp = request.MaxSandTemp.Value;               updated.Add("max_sand_temp"); }
-        if (request.MinPumpTemp.HasValue)        { entity.MinPumpTemp = request.MinPumpTemp.Value;               updated.Add("min_pump_temp"); }
-        if (request.PumpIntervalSeconds.HasValue){ entity.PumpIntervalSeconds = request.PumpIntervalSeconds.Value; updated.Add("pump_interval_seconds"); }
-        if (request.PriceLimitDkk.HasValue)      { entity.PriceLimitDkk = request.PriceLimitDkk.Value;           updated.Add("price_limit_dkk"); }
+        if (request.MaxSandTemp.HasValue) { entity.MaxSandTemp = request.MaxSandTemp.Value; updated.Add("max_sand_temp"); }
+        if (request.MinPumpTemp.HasValue) { entity.MinPumpTemp = request.MinPumpTemp.Value; updated.Add("min_pump_temp"); }
+        if (request.PumpIntervalSeconds.HasValue) { entity.PumpIntervalSeconds = request.PumpIntervalSeconds.Value; updated.Add("pump_interval_seconds"); }
+        if (request.PriceLimitDkk.HasValue) { entity.PriceLimitDkk = request.PriceLimitDkk.Value; updated.Add("price_limit_dkk"); }
         if (request.AutoHeatingEnabled.HasValue) { entity.AutoHeatingEnabled = request.AutoHeatingEnabled.Value; updated.Add("auto_heating_enabled"); }
-        if (request.AutoPumpEnabled.HasValue)    { entity.AutoPumpEnabled = request.AutoPumpEnabled.Value;       updated.Add("auto_pump_enabled"); }
+        if (request.AutoPumpEnabled.HasValue) { entity.AutoPumpEnabled = request.AutoPumpEnabled.Value; updated.Add("auto_pump_enabled"); }
 
         await _db.SaveChangesAsync();
         return (true, updated);
@@ -49,15 +49,15 @@ public class SettingsService : ISettingsService
 
         return entity is null ? null : new ElectricityPrice
         {
-            Date        = entity.Date,
-            Area        = entity.Area,
-            Currency    = entity.Currency,
+            Date = entity.Date,
+            Area = entity.Area,
+            Currency = entity.Currency,
             LastUpdated = entity.LastUpdated.ToString("o"),
-            Prices      = entity.Entries
+            Prices = entity.Entries
                 .OrderBy(e => e.Hour)
                 .Select(e => new PriceEntry
                 {
-                    Hour        = e.Hour.ToString("o"),
+                    Hour = e.Hour.ToString("o"),
                     PriceDkkKwh = e.PriceDkkKwh
                 })
                 .ToList()
@@ -66,11 +66,11 @@ public class SettingsService : ISettingsService
 
     private static DeviceSettings MapToDto(SettingsEntity e) => new()
     {
-        MaxSandTemp         = e.MaxSandTemp,
-        MinPumpTemp         = e.MinPumpTemp,
+        MaxSandTemp = e.MaxSandTemp,
+        MinPumpTemp = e.MinPumpTemp,
         PumpIntervalSeconds = e.PumpIntervalSeconds,
-        PriceLimitDkk       = e.PriceLimitDkk,
-        AutoHeatingEnabled  = e.AutoHeatingEnabled,
-        AutoPumpEnabled     = e.AutoPumpEnabled
+        PriceLimitDkk = e.PriceLimitDkk,
+        AutoHeatingEnabled = e.AutoHeatingEnabled,
+        AutoPumpEnabled = e.AutoPumpEnabled
     };
 }

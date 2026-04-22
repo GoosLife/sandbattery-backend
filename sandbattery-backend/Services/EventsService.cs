@@ -39,8 +39,8 @@ public class EventsService : IEventsService
 
         return new EventList
         {
-            Total  = total,
-            Limit  = limit,
+            Total = total,
+            Limit = limit,
             Offset = offset,
             Events = events.Select(MapToDto).ToList()
         };
@@ -55,7 +55,7 @@ public class EventsService : IEventsService
 
         return new AlertList
         {
-            Count  = alerts.Count,
+            Count = alerts.Count,
             Alerts = alerts.Select(MapToDto).ToList()
         };
     }
@@ -77,8 +77,8 @@ public class EventsService : IEventsService
     {
         _db.Heartbeats.Add(new HeartbeatEntity
         {
-            ProductKey    = dto.ProductKey,
-            Timestamp     = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
+            ProductKey = dto.ProductKey,
+            Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
             UptimeSeconds = dto.UptimeSeconds
         });
         await _db.SaveChangesAsync();
@@ -86,20 +86,20 @@ public class EventsService : IEventsService
 
     private static Models.Event MapToDto(EventEntity e) => new()
     {
-        Id          = e.Id,
-        Type        = e.Type,
-        Source      = e.Source,
-        Timestamp   = e.Timestamp.ToString("o"),
+        Id = e.Id,
+        Type = e.Type,
+        Source = e.Source,
+        Timestamp = e.Timestamp.ToString("o"),
         Description = e.Description
     };
 
     private static Alert MapToDto(AlertEntity a) => new()
     {
-        Id           = a.Id,
-        Severity     = a.Severity,
-        Type         = a.Type,
-        Message      = a.Message,
-        Timestamp    = a.Timestamp.ToString("o"),
+        Id = a.Id,
+        Severity = a.Severity,
+        Type = a.Type,
+        Message = a.Message,
+        Timestamp = a.Timestamp.ToString("o"),
         Acknowledged = a.Acknowledged
     };
 }

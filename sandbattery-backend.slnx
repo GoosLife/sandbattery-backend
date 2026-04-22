@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="sandbattery-backend.Tests/sandbattery-backend.Tests.csproj" />
   <Project Path="sandbattery-backend/sandbattery-backend.csproj" />
 </Solution>

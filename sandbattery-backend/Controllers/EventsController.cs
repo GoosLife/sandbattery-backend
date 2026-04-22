@@ -29,15 +29,19 @@ public class EventsController : ControllerBase
         DateTime? fromDate = null;
         DateTime? toDate = null;
 
-        if (from is not null && !DateTime.TryParse(from, out var parsedFrom))
-            return BadRequest(new { error = "Ugyldig 'from' dato – brug ISO 8601" });
-        else if (from is not null)
-            fromDate = DateTime.Parse(from).ToUniversalTime();
+        if (from is not null)
+        {
+            if (!DateTime.TryParse(from, out var parsedFrom))
+                return BadRequest(new { error = "Ugyldig 'from' dato – brug ISO 8601" });
+            fromDate = parsedFrom.ToUniversalTime();
+        }
 
-        if (to is not null && !DateTime.TryParse(to, out var parsedTo))
-            return BadRequest(new { error = "Ugyldig 'to' dato – brug ISO 8601" });
-        else if (to is not null)
-            toDate = DateTime.Parse(to).ToUniversalTime();
+        if (to is not null)
+        {
+            if (!DateTime.TryParse(to, out var parsedTo))
+                return BadRequest(new { error = "Ugyldig 'to' dato – brug ISO 8601" });
+            toDate = parsedTo.ToUniversalTime();
+        }
 
         // type may be a comma-separated list
         string[]? types = type?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

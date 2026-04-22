@@ -2,20 +2,29 @@ using System.Text.Json.Serialization;
 
 namespace sandbattery_backend.Models;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PumpAction { start, stop }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum HeaterAction { on, off }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CommandSource { manual, rule }
+
 public class PumpCommandRequest
 {
     [JsonPropertyName("action")]
-    public string Action { get; set; } = string.Empty;
+    public PumpAction Action { get; set; }
 
     [JsonPropertyName("source")]
-    public string Source { get; set; } = string.Empty;
+    public CommandSource Source { get; set; }
 }
 
 public class HeaterCommandRequest
 {
     [JsonPropertyName("action")]
-    public string Action { get; set; } = string.Empty;
+    public HeaterAction Action { get; set; }
 
     [JsonPropertyName("source")]
-    public string Source { get; set; } = string.Empty;
+    public CommandSource Source { get; set; }
 }

@@ -22,30 +22,30 @@ public class ControlService : IControlService
         return new SystemStatus
         {
             Heater = heater is null ? new ActuatorStatus { LastChanged = now } : MapToDto(heater),
-            Pump   = pump   is null ? new ActuatorStatus { LastChanged = now } : MapToDto(pump)
+            Pump = pump is null ? new ActuatorStatus { LastChanged = now } : MapToDto(pump)
         };
     }
 
     public async Task<(bool Success, ControlCommandResponse? Result, bool TempExceeded)> ControlPumpAsync(
-        string productKey, string action, string source)
+        string productKey, PumpAction action, CommandSource source)
     {
-        var active = action == "start";
+        var active = action == PumpAction.start;
         var ev = await UpdateActuatorAndLogEvent(productKey, "pump", active, source);
 
         return (true, new ControlCommandResponse
         {
             Success = true,
-            Action = action,
-            Source = source,
+            Action = action.ToString(),
+            Source = source.ToString(),
             Timestamp = ev.Timestamp.ToString("o"),
             EventId = ev.Id
         }, false);
     }
 
     public async Task<(bool Success, ControlCommandResponse? Result, bool TempExceeded)> ControlHeaterAsync(
-        string productKey, string action, string source)
+        string productKey, HeaterAction action, CommandSource source)
     {
-        if (action == "on")
+        if (action == HeaterAction.on)
         {
             var latest = await _db.SensorMeasurements
                 .Where(m => m.ProductKey == productKey)
@@ -60,21 +60,21 @@ public class ControlService : IControlService
                 return (false, null, true);
         }
 
-        var active = action == "on";
+        var active = action == HeaterAction.on;
         var ev = await UpdateActuatorAndLogEvent(productKey, "heater", active, source);
 
         return (true, new ControlCommandResponse
         {
             Success = true,
-            Action = action,
-            Source = source,
+            Action = action.ToString(),
+            Source = source.ToString(),
             Timestamp = ev.Timestamp.ToString("o"),
             EventId = ev.Id
         }, false);
     }
 
     private async Task<EventEntity> UpdateActuatorAndLogEvent(
-        string productKey, string actuator, bool active, string source)
+        string productKey, string actuator, bool active, CommandSource source)
     {
         var status = await _db.ActuatorStatuses
             .FirstOrDefaultAsync(a => a.ProductKey == productKey && a.Actuator == actuator);
@@ -86,31 +86,31 @@ public class ControlService : IControlService
         }
 
         status.Active = active;
-        status.Source = source;
+        status.Source = source.ToString();
         status.LastChanged = DateTime.UtcNow;
 
         var eventType = (actuator, active) switch
         {
-            ("pump",   true)  => "pump_start",
-            ("pump",   false) => "pump_stop",
-            ("heater", true)  => "heat_on",
-            _                 => "heat_off"
+            ("pump", true) => "pump_start",
+            ("pump", false) => "pump_stop",
+            ("heater", true) => "heat_on",
+            _ => "heat_off"
         };
 
         var description = (actuator, active) switch
         {
-            ("pump",   true)  => "Vandpumpe startet",
-            ("pump",   false) => "Vandpumpe stoppet",
-            ("heater", true)  => "Varmelegeme aktiveret",
-            _                 => "Varmelegeme deaktiveret"
+            ("pump", true) => "Vandpumpe startet",
+            ("pump", false) => "Vandpumpe stoppet",
+            ("heater", true) => "Varmelegeme aktiveret",
+            _ => "Varmelegeme deaktiveret"
         };
 
         var ev = new EventEntity
         {
-            ProductKey  = productKey,
-            Type        = eventType,
-            Source      = source,
-            Timestamp   = DateTime.UtcNow,
+            ProductKey = productKey,
+            Type = eventType,
+            Source = source.ToString(),
+            Timestamp = DateTime.UtcNow,
             Description = description
         };
         _db.Events.Add(ev);
@@ -121,8 +121,8 @@ public class ControlService : IControlService
 
     private static ActuatorStatus MapToDto(ActuatorStatusEntity e) => new()
     {
-        Active      = e.Active,
-        Source      = e.Source,
+        Active = e.Active,
+        Source = e.Source,
         LastChanged = e.LastChanged.ToString("o")
     };
 }
