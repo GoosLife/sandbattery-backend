@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: sandbattery-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sandbattery}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - sandbattery-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  sandbattery-db-data:
