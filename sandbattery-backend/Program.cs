@@ -13,9 +13,9 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         if (allowedOrigins.Length > 0)
-            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
         else
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     }));
 
 // ── MVC + OpenAPI ─────────────────────────────────────────────────────────────
