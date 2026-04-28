@@ -4,6 +4,9 @@ namespace sandbattery_backend.Models;
 
 public class Device
 {
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
     [JsonPropertyName("product_key")]
     public string ProductKey { get; set; } = string.Empty;
 

@@ -13,10 +13,12 @@ public class DataService : IDataService
 
     public DataService(SandbatteryDbContext db) => _db = db;
 
-    public async Task<SensorMeasurement?> GetLatestMeasurementAsync(string productKey)
+    public async Task<SensorMeasurement?> GetLatestMeasurementAsync(int deviceId)
     {
         var entity = await _db.SensorMeasurements
-            .Where(m => m.ProductKey == productKey)
+            .Include(m => m.TemperatureReadings)
+            .Include(m => m.FlowRateReadings)
+            .Where(m => m.DeviceId == deviceId)
             .OrderByDescending(m => m.Timestamp)
             .FirstOrDefaultAsync();
 
@@ -24,10 +26,12 @@ public class DataService : IDataService
     }
 
     public async Task<DataHistory> GetMeasurementHistoryAsync(
-        string productKey, DateTime from, DateTime to, MeasurementInterval? interval, int limit)
+        int deviceId, DateTime from, DateTime to, MeasurementInterval? interval, int limit)
     {
         var entities = await _db.SensorMeasurements
-            .Where(m => m.ProductKey == productKey && m.Timestamp >= from && m.Timestamp <= to)
+            .Include(m => m.TemperatureReadings)
+            .Include(m => m.FlowRateReadings)
+            .Where(m => m.DeviceId == deviceId && m.Timestamp >= from && m.Timestamp <= to)
             .OrderBy(m => m.Timestamp)
             .ToListAsync();
 
@@ -58,24 +62,31 @@ public class DataService : IDataService
         };
     }
 
-    public async Task<SensorMeasurement> AddMeasurementAsync(string productKey, SensorMeasurement dto)
+    public async Task<SensorMeasurement> AddMeasurementAsync(int deviceId, SensorMeasurement dto)
     {
-        var settings = await _db.Settings.FirstOrDefaultAsync(s => s.ProductKey == productKey)
-            ?? new SettingsEntity { ProductKey = productKey };
+        var settings = await _db.Settings.FirstOrDefaultAsync(s => s.DeviceId == deviceId)
+            ?? new SettingsEntity { DeviceId = deviceId };
 
         var status = DetermineStatus(dto, settings);
 
         var entity = new SensorMeasurementEntity
         {
-            ProductKey = productKey,
+            DeviceId = deviceId,
             Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
-            SandTemp = dto.SandTemp,
-            WaterTempIn = dto.WaterTempIn,
-            WaterTempOut = dto.WaterTempOut,
-            FlowRate = dto.FlowRate,
             PowerW = dto.PowerW,
             EnergyKwh = dto.EnergyKwh,
-            Status = status
+            Status = status,
+            TemperatureReadings = dto.Temperatures.Select(t => new TemperatureSensorReadingEntity
+            {
+                SensorIndex = t.Index,
+                Label = t.Label,
+                Value = t.Value
+            }).ToList(),
+            FlowRateReadings = dto.FlowRates.Select(f => new FlowRateSensorReadingEntity
+            {
+                SensorIndex = f.Index,
+                Value = f.Value
+            }).ToList()
         };
 
         _db.SensorMeasurements.Add(entity);
@@ -84,7 +95,7 @@ public class DataService : IDataService
         {
             _db.Alerts.Add(new AlertEntity
             {
-                ProductKey = productKey,
+                DeviceId = deviceId,
                 Severity = "WARNING",
                 Type = "SENSOR_ERROR",
                 Message = "En eller flere sensorer rapporterer ugyldige værdier (mulig sensorafkobling).",
@@ -94,45 +105,54 @@ public class DataService : IDataService
         }
         else if (status == "CRITICAL")
         {
+            var sandTemp = SandTempReading(dto);
             _db.Alerts.Add(new AlertEntity
             {
-                ProductKey = productKey,
+                DeviceId = deviceId,
                 Severity = "CRITICAL",
                 Type = "TEMP_LIMIT_EXCEEDED",
-                Message = $"Maks temperaturen er overskredet ({dto.SandTemp:F1}\u00b0C). Sandbatteriet nedkøles.",
+                Message = $"Maks temperaturen er overskredet ({sandTemp?.Value:F1}°C). Sandbatteriet nedkøles.",
                 Timestamp = DateTime.UtcNow,
                 Acknowledged = false
             });
         }
 
         await _db.SaveChangesAsync();
-
         return MapToDto(entity);
     }
 
     public static string DetermineStatus(SensorMeasurement m, SettingsEntity s)
     {
-        if (m.SandTemp <= -126 || m.WaterTempIn <= -126 || m.WaterTempOut <= -126)
+        if (m.Temperatures.Any(t => t.Value <= -126) || m.FlowRates.Any(f => f.Value <= -126))
             return "ERROR";
 
-        if (m.SandTemp >= s.MaxSandTemp)
-            return "CRITICAL";
+        var sandTemp = SandTempReading(m);
+        if (sandTemp is null) return "OK";
 
-        if (m.SandTemp < 0)
-            return "WARNING";
+        if (sandTemp.Value >= s.MaxSandTemp) return "CRITICAL";
+        if (sandTemp.Value < 0) return "WARNING";
 
         return "OK";
     }
 
+    private static TemperatureReading? SandTempReading(SensorMeasurement m) =>
+        m.Temperatures.FirstOrDefault(t => t.Label.Equals("sand", StringComparison.OrdinalIgnoreCase))
+        ?? m.Temperatures.MinBy(t => t.Index);
 
     private static SensorMeasurement MapToDto(SensorMeasurementEntity e) => new()
     {
         Timestamp = e.Timestamp.ToString("o"),
-        ProductKey = e.ProductKey,
-        SandTemp = e.SandTemp,
-        WaterTempIn = e.WaterTempIn,
-        WaterTempOut = e.WaterTempOut,
-        FlowRate = e.FlowRate,
+        Temperatures = e.TemperatureReadings.OrderBy(t => t.SensorIndex).Select(t => new TemperatureReading
+        {
+            Index = t.SensorIndex,
+            Label = t.Label,
+            Value = t.Value
+        }).ToList(),
+        FlowRates = e.FlowRateReadings.OrderBy(f => f.SensorIndex).Select(f => new FlowRateReading
+        {
+            Index = f.SensorIndex,
+            Value = f.Value
+        }).ToList(),
         PowerW = e.PowerW,
         EnergyKwh = e.EnergyKwh,
         Status = e.Status

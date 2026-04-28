@@ -4,8 +4,8 @@ namespace sandbattery_backend.Services;
 
 public interface IEventsService
 {
-    Task<EventList> GetEventsAsync(string productKey, DateTime? from, DateTime? to, string[]? types, string? source, int limit, int offset);
-    Task<AlertList> GetActiveAlertsAsync(string productKey);
-    Task<Alert?> AcknowledgeAlertAsync(int alertId, string productKey);
-    Task AddHeartbeatAsync(Heartbeat heartbeat);
+    Task<EventList> GetEventsAsync(int deviceId, DateTime? from, DateTime? to, string[]? types, string? source, int limit, int offset);
+    Task<AlertList> GetActiveAlertsAsync(int deviceId);
+    Task<Alert?> AcknowledgeAlertAsync(int alertId, int deviceId);
+    Task AddHeartbeatAsync(int deviceId, Heartbeat heartbeat);
 }

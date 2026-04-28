@@ -2,6 +2,27 @@ using System.Text.Json.Serialization;
 
 namespace sandbattery_backend.Models;
 
+public class TemperatureReading
+{
+    [JsonPropertyName("index")]
+    public int Index { get; set; }
+
+    [JsonPropertyName("label")]
+    public string Label { get; set; } = string.Empty;
+
+    [JsonPropertyName("value")]
+    public float Value { get; set; }
+}
+
+public class FlowRateReading
+{
+    [JsonPropertyName("index")]
+    public int Index { get; set; }
+
+    [JsonPropertyName("value")]
+    public float Value { get; set; }
+}
+
 public class SensorMeasurement
 {
     [JsonPropertyName("timestamp")]
@@ -10,17 +31,11 @@ public class SensorMeasurement
     [JsonPropertyName("product_key")]
     public string ProductKey { get; set; } = string.Empty;
 
-    [JsonPropertyName("sand_temp")]
-    public float SandTemp { get; set; }
+    [JsonPropertyName("temperatures")]
+    public List<TemperatureReading> Temperatures { get; set; } = [];
 
-    [JsonPropertyName("water_temp_in")]
-    public float WaterTempIn { get; set; }
-
-    [JsonPropertyName("water_temp_out")]
-    public float WaterTempOut { get; set; }
-
-    [JsonPropertyName("flow_rate")]
-    public float FlowRate { get; set; }
+    [JsonPropertyName("flow_rates")]
+    public List<FlowRateReading> FlowRates { get; set; } = [];
 
     [JsonPropertyName("power_w")]
     public float PowerW { get; set; }
@@ -48,5 +63,5 @@ public class DataHistory
     public int Count { get; set; }
 
     [JsonPropertyName("data")]
-    public List<SensorMeasurement> Data { get; set; } = new();
+    public List<SensorMeasurement> Data { get; set; } = [];
 }

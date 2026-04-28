@@ -33,7 +33,7 @@ public class ProductKeyAuthFilter : IAsyncActionFilter
             return;
         }
 
-        context.HttpContext.Items["ProductKey"] = productKey;
+        context.HttpContext.Items["DeviceId"] = device.Id;
         context.HttpContext.Items["Device"] = device;
 
         await next();

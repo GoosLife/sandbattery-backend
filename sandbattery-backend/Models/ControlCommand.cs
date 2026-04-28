@@ -22,6 +22,9 @@ public class PumpCommandRequest
 
 public class HeaterCommandRequest
 {
+    [JsonPropertyName("index")]
+    public int Index { get; set; } = 0;
+
     [JsonPropertyName("action")]
     public HeaterAction Action { get; set; }
 

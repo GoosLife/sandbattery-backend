@@ -11,31 +11,31 @@ public class SettingsService : ISettingsService
 
     public SettingsService(SandbatteryDbContext db) => _db = db;
 
-    public async Task<DeviceSettings> GetSettingsAsync(string productKey)
+    public async Task<DeviceSettings> GetSettingsAsync(int deviceId)
     {
-        var entity = await _db.Settings.FirstOrDefaultAsync(s => s.ProductKey == productKey);
+        var entity = await _db.Settings.FirstOrDefaultAsync(s => s.DeviceId == deviceId);
         return entity is null ? new DeviceSettings() : MapToDto(entity);
     }
 
     public async Task<(bool Success, List<string> UpdatedFields)> UpdateSettingsAsync(
-        string productKey, SettingsUpdateRequest request)
+        int deviceId, SettingsUpdateRequest request)
     {
-        var entity = await _db.Settings.FirstOrDefaultAsync(s => s.ProductKey == productKey);
+        var entity = await _db.Settings.FirstOrDefaultAsync(s => s.DeviceId == deviceId);
 
         if (entity is null)
         {
-            entity = new SettingsEntity { ProductKey = productKey };
+            entity = new SettingsEntity { DeviceId = deviceId };
             _db.Settings.Add(entity);
         }
 
         var updated = new List<string>();
 
-        if (request.MaxSandTemp.HasValue) { entity.MaxSandTemp = request.MaxSandTemp.Value; updated.Add("max_sand_temp"); }
-        if (request.MinPumpTemp.HasValue) { entity.MinPumpTemp = request.MinPumpTemp.Value; updated.Add("min_pump_temp"); }
+        if (request.MaxSandTemp.HasValue)        { entity.MaxSandTemp = request.MaxSandTemp.Value;               updated.Add("max_sand_temp"); }
+        if (request.MinPumpTemp.HasValue)         { entity.MinPumpTemp = request.MinPumpTemp.Value;               updated.Add("min_pump_temp"); }
         if (request.PumpIntervalSeconds.HasValue) { entity.PumpIntervalSeconds = request.PumpIntervalSeconds.Value; updated.Add("pump_interval_seconds"); }
-        if (request.PriceLimitDkk.HasValue) { entity.PriceLimitDkk = request.PriceLimitDkk.Value; updated.Add("price_limit_dkk"); }
-        if (request.AutoHeatingEnabled.HasValue) { entity.AutoHeatingEnabled = request.AutoHeatingEnabled.Value; updated.Add("auto_heating_enabled"); }
-        if (request.AutoPumpEnabled.HasValue) { entity.AutoPumpEnabled = request.AutoPumpEnabled.Value; updated.Add("auto_pump_enabled"); }
+        if (request.PriceLimitDkk.HasValue)       { entity.PriceLimitDkk = request.PriceLimitDkk.Value;           updated.Add("price_limit_dkk"); }
+        if (request.AutoHeatingEnabled.HasValue)  { entity.AutoHeatingEnabled = request.AutoHeatingEnabled.Value; updated.Add("auto_heating_enabled"); }
+        if (request.AutoPumpEnabled.HasValue)     { entity.AutoPumpEnabled = request.AutoPumpEnabled.Value;       updated.Add("auto_pump_enabled"); }
 
         await _db.SaveChangesAsync();
         return (true, updated);
@@ -55,11 +55,7 @@ public class SettingsService : ISettingsService
             LastUpdated = entity.LastUpdated.ToString("o"),
             Prices = entity.Entries
                 .OrderBy(e => e.Hour)
-                .Select(e => new PriceEntry
-                {
-                    Hour = e.Hour.ToString("o"),
-                    PriceDkkKwh = e.PriceDkkKwh
-                })
+                .Select(e => new PriceEntry { Hour = e.Hour.ToString("o"), PriceDkkKwh = e.PriceDkkKwh })
                 .ToList()
         };
     }

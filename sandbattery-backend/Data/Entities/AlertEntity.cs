@@ -10,8 +10,8 @@ public class AlertEntity
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("product_key")]
-    public string ProductKey { get; set; } = string.Empty;
+    [Column("device_id")]
+    public int DeviceId { get; set; }
 
     [Column("severity")]
     public string Severity { get; set; } = string.Empty;

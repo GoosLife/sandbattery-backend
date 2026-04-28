@@ -17,6 +17,7 @@ public class AuthService : IAuthService
 
         return entity is null ? null : new Device
         {
+            Id = entity.Id,
             ProductKey = entity.ProductKey,
             DeviceName = entity.DeviceName
         };

@@ -13,13 +13,13 @@ public class EventsService : IEventsService
     public EventsService(SandbatteryDbContext db) => _db = db;
 
     public async Task<EventList> GetEventsAsync(
-        string productKey, DateTime? from, DateTime? to,
+        int deviceId, DateTime? from, DateTime? to,
         string[]? types, string? source, int limit, int offset)
     {
         var toDate = to ?? DateTime.UtcNow;
 
         var query = _db.Events
-            .Where(e => e.ProductKey == productKey && e.Timestamp <= toDate);
+            .Where(e => e.DeviceId == deviceId && e.Timestamp <= toDate);
 
         if (from.HasValue)
             query = query.Where(e => e.Timestamp >= from.Value);
@@ -46,24 +46,20 @@ public class EventsService : IEventsService
         };
     }
 
-    public async Task<AlertList> GetActiveAlertsAsync(string productKey)
+    public async Task<AlertList> GetActiveAlertsAsync(int deviceId)
     {
         var alerts = await _db.Alerts
-            .Where(a => a.ProductKey == productKey && !a.Acknowledged)
+            .Where(a => a.DeviceId == deviceId && !a.Acknowledged)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
 
-        return new AlertList
-        {
-            Count = alerts.Count,
-            Alerts = alerts.Select(MapToDto).ToList()
-        };
+        return new AlertList { Count = alerts.Count, Alerts = alerts.Select(MapToDto).ToList() };
     }
 
-    public async Task<Alert?> AcknowledgeAlertAsync(int alertId, string productKey)
+    public async Task<Alert?> AcknowledgeAlertAsync(int alertId, int deviceId)
     {
         var entity = await _db.Alerts
-            .FirstOrDefaultAsync(a => a.Id == alertId && a.ProductKey == productKey);
+            .FirstOrDefaultAsync(a => a.Id == alertId && a.DeviceId == deviceId);
 
         if (entity is null) return null;
 
@@ -73,11 +69,11 @@ public class EventsService : IEventsService
         return MapToDto(entity);
     }
 
-    public async Task AddHeartbeatAsync(Heartbeat dto)
+    public async Task AddHeartbeatAsync(int deviceId, Heartbeat dto)
     {
         _db.Heartbeats.Add(new HeartbeatEntity
         {
-            ProductKey = dto.ProductKey,
+            DeviceId = deviceId,
             Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
             UptimeSeconds = dto.UptimeSeconds
         });

@@ -4,6 +4,9 @@ namespace sandbattery_backend.Models;
 
 public class ActuatorStatus
 {
+    [JsonPropertyName("index")]
+    public int Index { get; set; }
+
     [JsonPropertyName("active")]
     public bool Active { get; set; }
 
@@ -16,8 +19,8 @@ public class ActuatorStatus
 
 public class SystemStatus
 {
-    [JsonPropertyName("heater")]
-    public ActuatorStatus Heater { get; set; } = new();
+    [JsonPropertyName("heaters")]
+    public List<ActuatorStatus> Heaters { get; set; } = [];
 
     [JsonPropertyName("pump")]
     public ActuatorStatus Pump { get; set; } = new();

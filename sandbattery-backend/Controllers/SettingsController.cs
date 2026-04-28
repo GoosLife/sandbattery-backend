@@ -14,21 +14,18 @@ public class SettingsController : ControllerBase
 
     public SettingsController(ISettingsService settingsService) => _settingsService = settingsService;
 
-    private string ProductKey => (string)HttpContext.Items["ProductKey"]!;
+    private int DeviceId => (int)HttpContext.Items["DeviceId"]!;
 
-    /// <summary>GET /api/v1/settings — returns current device settings.</summary>
     [HttpGet]
     public async Task<IActionResult> GetSettings()
     {
-        var settings = await _settingsService.GetSettingsAsync(ProductKey);
+        var settings = await _settingsService.GetSettingsAsync(DeviceId);
         return Ok(settings);
     }
 
-    /// <summary>PUT /api/v1/settings — partial update of device settings.</summary>
     [HttpPut]
     public async Task<IActionResult> UpdateSettings([FromBody] SettingsUpdateRequest request)
     {
-        // Validate individual field ranges
         if (request.MaxSandTemp.HasValue && (request.MaxSandTemp <= 0 || request.MaxSandTemp > 70))
             return BadRequest(new { error = "max_sand_temp skal være > 0 og <= 70" });
 
@@ -38,26 +35,20 @@ public class SettingsController : ControllerBase
         if (request.PriceLimitDkk.HasValue && request.PriceLimitDkk <= 0)
             return BadRequest(new { error = "price_limit_dkk skal være et positivt decimaltal" });
 
-        // Validate logical consistency: min_pump_temp must be < max_sand_temp (final values)
         if (request.MinPumpTemp.HasValue || request.MaxSandTemp.HasValue)
         {
-            var current = await _settingsService.GetSettingsAsync(ProductKey);
+            var current = await _settingsService.GetSettingsAsync(DeviceId);
             var finalMax = request.MaxSandTemp ?? current.MaxSandTemp;
             var finalMin = request.MinPumpTemp ?? current.MinPumpTemp;
 
             if (finalMin >= finalMax)
-                return UnprocessableEntity(new
-                {
-                    error = "min_pump_temp skal være lavere end max_sand_temp"
-                });
+                return UnprocessableEntity(new { error = "min_pump_temp skal være lavere end max_sand_temp" });
         }
 
-        var (_, updatedFields) = await _settingsService.UpdateSettingsAsync(ProductKey, request);
-
+        var (_, updatedFields) = await _settingsService.UpdateSettingsAsync(DeviceId, request);
         return Ok(new { success = true, updated_fields = updatedFields });
     }
 
-    /// <summary>GET /api/v1/settings/electricity-price — returns cached electricity prices.</summary>
     [HttpGet("electricity-price")]
     public async Task<IActionResult> GetElectricityPrice(
         [FromQuery] string? date,

@@ -15,13 +15,12 @@ public class DataController : ControllerBase
 
     public DataController(IDataService dataService) => _dataService = dataService;
 
-    private string ProductKey => (string)HttpContext.Items["ProductKey"]!;
+    private int DeviceId => (int)HttpContext.Items["DeviceId"]!;
 
-    /// <summary>GET /api/v1/data/latest — returns the most recent sensor measurement.</summary>
     [HttpGet("latest")]
     public async Task<IActionResult> GetLatest()
     {
-        var measurement = await _dataService.GetLatestMeasurementAsync(ProductKey);
+        var measurement = await _dataService.GetLatestMeasurementAsync(DeviceId);
 
         if (measurement is null)
             return NotFound(new { error = "Ingen målinger fundet for denne enhed" });
@@ -29,7 +28,6 @@ public class DataController : ControllerBase
         return Ok(measurement);
     }
 
-    /// <summary>GET /api/v1/data/history — returns measurements within a time range.</summary>
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(
         [FromQuery] string? from,
@@ -54,19 +52,18 @@ public class DataController : ControllerBase
         limit = Math.Clamp(limit, 1, 5000);
 
         var history = await _dataService.GetMeasurementHistoryAsync(
-            ProductKey, fromDate.ToUniversalTime(), toDate.ToUniversalTime(), parsedInterval, limit);
+            DeviceId, fromDate.ToUniversalTime(), toDate.ToUniversalTime(), parsedInterval, limit);
 
         return Ok(history);
     }
 
-    /// <summary>POST /api/v1/data — receives a sensor measurement from the Arduino.</summary>
     [HttpPost]
     public async Task<IActionResult> PostData([FromBody] SensorMeasurement body)
     {
         if (string.IsNullOrEmpty(body.Timestamp))
             return BadRequest(new { error = "Feltet 'timestamp' er påkrævet" });
 
-        var saved = await _dataService.AddMeasurementAsync(ProductKey, body);
+        var saved = await _dataService.AddMeasurementAsync(DeviceId, body);
         return StatusCode(StatusCodes.Status201Created, saved);
     }
 }
