@@ -19,6 +19,9 @@ public class ActuatorStatusEntity
     [Column("actuator_index")]
     public int ActuatorIndex { get; set; } = 0;
 
+    [Column("name")]
+    public string Name { get; set; } = string.Empty;
+
     [Column("active")]
     public bool Active { get; set; }
 

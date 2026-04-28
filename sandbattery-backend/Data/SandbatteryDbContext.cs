@@ -19,6 +19,7 @@ public class SandbatteryDbContext : DbContext
     public DbSet<ElectricityPriceEntity> ElectricityPrices => Set<ElectricityPriceEntity>();
     public DbSet<PriceEntryEntity> PriceEntries => Set<PriceEntryEntity>();
     public DbSet<HeartbeatEntity> Heartbeats => Set<HeartbeatEntity>();
+    public DbSet<SensorConfigEntity> SensorConfigs => Set<SensorConfigEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,10 @@ public class SandbatteryDbContext : DbContext
 
         modelBuilder.Entity<ElectricityPriceEntity>()
             .HasIndex(e => new { e.Date, e.Area })
+            .IsUnique();
+
+        modelBuilder.Entity<SensorConfigEntity>()
+            .HasIndex(s => new { s.DeviceId, s.Type, s.SensorIndex })
             .IsUnique();
     }
 }
