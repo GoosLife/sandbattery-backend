@@ -12,6 +12,10 @@ namespace sandbattery_backend.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // 1. Add auto-increment id to device, swap PK
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_device",
+                table: "device");
+
             migrationBuilder.AddColumn<int>(
                 name: "id",
                 table: "device",
@@ -19,10 +23,6 @@ namespace sandbattery_backend.Migrations
                 nullable: false,
                 defaultValue: 0)
                 .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn);
-
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_device",
-                table: "device");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_device",
@@ -127,9 +127,9 @@ namespace sandbattery_backend.Migrations
                 table: "actuator_status");
 
             // 5. Drop old flat sensor columns from sensor_measurement
-            migrationBuilder.DropColumn(name: "flow_rate",      table: "sensor_measurement");
-            migrationBuilder.DropColumn(name: "sand_temp",      table: "sensor_measurement");
-            migrationBuilder.DropColumn(name: "water_temp_in",  table: "sensor_measurement");
+            migrationBuilder.DropColumn(name: "flow_rate", table: "sensor_measurement");
+            migrationBuilder.DropColumn(name: "sand_temp", table: "sensor_measurement");
+            migrationBuilder.DropColumn(name: "water_temp_in", table: "sensor_measurement");
             migrationBuilder.DropColumn(name: "water_temp_out", table: "sensor_measurement");
 
             // 6. Create new sensor reading tables
@@ -140,8 +140,8 @@ namespace sandbattery_backend.Migrations
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     measurement_id = table.Column<int>(type: "int", nullable: false),
-                    sensor_index   = table.Column<int>(type: "int", nullable: false),
-                    value          = table.Column<float>(type: "float", nullable: false)
+                    sensor_index = table.Column<int>(type: "int", nullable: false),
+                    value = table.Column<float>(type: "float", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -159,13 +159,13 @@ namespace sandbattery_backend.Migrations
                 name: "temperature_sensor_reading",
                 columns: table => new
                 {
-                    id             = table.Column<int>(type: "int", nullable: false)
+                    id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     measurement_id = table.Column<int>(type: "int", nullable: false),
-                    sensor_index   = table.Column<int>(type: "int", nullable: false),
-                    label          = table.Column<string>(type: "longtext", nullable: false)
+                    sensor_index = table.Column<int>(type: "int", nullable: false),
+                    label = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    value          = table.Column<float>(type: "float", nullable: false)
+                    value = table.Column<float>(type: "float", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -209,35 +209,35 @@ namespace sandbattery_backend.Migrations
             migrationBuilder.DropTable(name: "flow_rate_sensor_reading");
             migrationBuilder.DropTable(name: "temperature_sensor_reading");
 
-            migrationBuilder.DropIndex(name: "IX_settings_device_id",                                       table: "settings");
-            migrationBuilder.DropIndex(name: "IX_actuator_status_device_id_actuator_actuator_index",        table: "actuator_status");
-            migrationBuilder.DropIndex(name: "IX_device_product_key",                                        table: "device");
-            migrationBuilder.DropPrimaryKey(name: "PK_device",                                               table: "device");
+            migrationBuilder.DropIndex(name: "IX_settings_device_id", table: "settings");
+            migrationBuilder.DropIndex(name: "IX_actuator_status_device_id_actuator_actuator_index", table: "actuator_status");
+            migrationBuilder.DropIndex(name: "IX_device_product_key", table: "device");
+            migrationBuilder.DropPrimaryKey(name: "PK_device", table: "device");
 
-            migrationBuilder.DropColumn(name: "device_id",      table: "settings");
-            migrationBuilder.DropColumn(name: "device_id",      table: "sensor_measurement");
-            migrationBuilder.DropColumn(name: "device_id",      table: "heartbeat");
-            migrationBuilder.DropColumn(name: "device_id",      table: "event");
-            migrationBuilder.DropColumn(name: "device_id",      table: "alert");
-            migrationBuilder.DropColumn(name: "device_id",      table: "actuator_status");
+            migrationBuilder.DropColumn(name: "device_id", table: "settings");
+            migrationBuilder.DropColumn(name: "device_id", table: "sensor_measurement");
+            migrationBuilder.DropColumn(name: "device_id", table: "heartbeat");
+            migrationBuilder.DropColumn(name: "device_id", table: "event");
+            migrationBuilder.DropColumn(name: "device_id", table: "alert");
+            migrationBuilder.DropColumn(name: "device_id", table: "actuator_status");
             migrationBuilder.DropColumn(name: "actuator_index", table: "actuator_status");
-            migrationBuilder.DropColumn(name: "id",             table: "device");
+            migrationBuilder.DropColumn(name: "id", table: "device");
 
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "settings",          type: "varchar(255)", nullable: false, defaultValue: "").Annotation("MySql:CharSet", "utf8mb4");
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "sensor_measurement", type: "longtext",     nullable: false).Annotation("MySql:CharSet", "utf8mb4");
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "heartbeat",          type: "longtext",     nullable: false).Annotation("MySql:CharSet", "utf8mb4");
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "event",              type: "longtext",     nullable: false).Annotation("MySql:CharSet", "utf8mb4");
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "alert",              type: "longtext",     nullable: false).Annotation("MySql:CharSet", "utf8mb4");
-            migrationBuilder.AddColumn<string>(name: "product_key", table: "actuator_status",    type: "varchar(255)", nullable: false, defaultValue: "").Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "settings", type: "varchar(255)", nullable: false, defaultValue: "").Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "sensor_measurement", type: "longtext", nullable: false).Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "heartbeat", type: "longtext", nullable: false).Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "event", type: "longtext", nullable: false).Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "alert", type: "longtext", nullable: false).Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.AddColumn<string>(name: "product_key", table: "actuator_status", type: "varchar(255)", nullable: false, defaultValue: "").Annotation("MySql:CharSet", "utf8mb4");
 
-            migrationBuilder.AddColumn<float>(name: "flow_rate",      table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
-            migrationBuilder.AddColumn<float>(name: "sand_temp",      table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
-            migrationBuilder.AddColumn<float>(name: "water_temp_in",  table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
+            migrationBuilder.AddColumn<float>(name: "flow_rate", table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
+            migrationBuilder.AddColumn<float>(name: "sand_temp", table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
+            migrationBuilder.AddColumn<float>(name: "water_temp_in", table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
             migrationBuilder.AddColumn<float>(name: "water_temp_out", table: "sensor_measurement", type: "float", nullable: false, defaultValue: 0f);
 
             migrationBuilder.AddPrimaryKey(name: "PK_device", table: "device", column: "product_key");
 
-            migrationBuilder.CreateIndex(name: "IX_settings_product_key",               table: "settings",       column: "product_key", unique: true);
+            migrationBuilder.CreateIndex(name: "IX_settings_product_key", table: "settings", column: "product_key", unique: true);
             migrationBuilder.CreateIndex(name: "IX_actuator_status_product_key_actuator", table: "actuator_status", columns: new[] { "product_key", "actuator" }, unique: true);
         }
     }

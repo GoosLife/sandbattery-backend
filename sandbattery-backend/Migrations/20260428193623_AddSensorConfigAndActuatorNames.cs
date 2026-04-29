@@ -43,9 +43,15 @@ namespace sandbattery_backend.Migrations
                 columns: new[] { "device_id", "type", "sensor_index" },
                 unique: true);
 
-            // Seed DP-SB-01 (device_id = 3)
+            // Seed device DP-SB-01 if not exists
             migrationBuilder.Sql(@"
-                INSERT INTO sensor_config (device_id, type, sensor_index, name) VALUES
+                INSERT IGNORE INTO device (id, product_key)
+                VALUES (3, 'DP-SB-01');
+            ");
+
+            // Seed sensor_config if not exists
+            migrationBuilder.Sql(@"
+                INSERT IGNORE INTO sensor_config (device_id, type, sensor_index, name) VALUES
                 (3, 'flow_rate',   0, 'Flow in'),
                 (3, 'flow_rate',   1, 'Flow out'),
                 (3, 'temperature', 0, 'Flow temp in'),
@@ -54,12 +60,14 @@ namespace sandbattery_backend.Migrations
                 (3, 'temperature', 3, 'Core');
             ");
 
+            // Seed actuator_status if not exists
             migrationBuilder.Sql(@"
-                INSERT INTO actuator_status (device_id, actuator, actuator_index, name, active, source, last_changed) VALUES
+                INSERT IGNORE INTO actuator_status (device_id, actuator, actuator_index, name, active, source, last_changed) VALUES
                 (3, 'heater', 0, 'Small',  0, 'manual', UTC_TIMESTAMP()),
                 (3, 'heater', 1, 'Medium', 0, 'manual', UTC_TIMESTAMP()),
                 (3, 'heater', 2, 'Large',  0, 'manual', UTC_TIMESTAMP());
             ");
+
         }
 
         /// <inheritdoc />
