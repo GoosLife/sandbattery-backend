@@ -74,7 +74,6 @@ public class DataService : IDataService
             DeviceId = deviceId,
             Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
             PowerW = dto.PowerW,
-            EnergyKwh = dto.EnergyKwh,
             Status = status,
             TemperatureReadings = dto.Temperatures.Select(t => new TemperatureSensorReadingEntity
             {
@@ -139,6 +138,53 @@ public class DataService : IDataService
         m.Temperatures.FirstOrDefault(t => t.Label.Equals("sand", StringComparison.OrdinalIgnoreCase))
         ?? m.Temperatures.MinBy(t => t.Index);
 
+    public async Task<EnergyReading?> GetLatestEnergyAsync(int deviceId)
+    {
+        var entity = await _db.EnergyReadings
+            .Where(e => e.DeviceId == deviceId)
+            .OrderByDescending(e => e.Timestamp)
+            .FirstOrDefaultAsync();
+
+        return entity is null ? null : MapEnergyToDto(entity);
+    }
+
+    public async Task<EnergyHistory> GetEnergyHistoryAsync(int deviceId, DateTime from, DateTime to, int limit)
+    {
+        var entities = await _db.EnergyReadings
+            .Where(e => e.DeviceId == deviceId && e.Timestamp >= from && e.Timestamp <= to)
+            .OrderBy(e => e.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+
+        return new EnergyHistory
+        {
+            From = from.ToString("o"),
+            To = to.ToString("o"),
+            Count = entities.Count,
+            Data = entities.Select(MapEnergyToDto).ToList()
+        };
+    }
+
+    public async Task<EnergyReading> AddEnergyReadingAsync(int deviceId, EnergyReading dto)
+    {
+        var entity = new EnergyReadingEntity
+        {
+            DeviceId = deviceId,
+            Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
+            EnergyKwh = dto.EnergyKwh
+        };
+
+        _db.EnergyReadings.Add(entity);
+        await _db.SaveChangesAsync();
+        return MapEnergyToDto(entity);
+    }
+
+    private static EnergyReading MapEnergyToDto(EnergyReadingEntity e) => new()
+    {
+        Timestamp = e.Timestamp.ToString("o"),
+        EnergyKwh = e.EnergyKwh
+    };
+
     private static SensorMeasurement MapToDto(SensorMeasurementEntity e) => new()
     {
         Timestamp = e.Timestamp.ToString("o"),
@@ -154,7 +200,6 @@ public class DataService : IDataService
             Value = f.Value
         }).ToList(),
         PowerW = e.PowerW,
-        EnergyKwh = e.EnergyKwh,
         Status = e.Status
     };
 }

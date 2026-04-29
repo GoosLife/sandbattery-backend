@@ -19,9 +19,6 @@ public class SensorMeasurementEntity
     [Column("power_w")]
     public float PowerW { get; set; }
 
-    [Column("energy_kwh")]
-    public float EnergyKwh { get; set; }
-
     [Column("status")]
     public string Status { get; set; } = "OK";
 

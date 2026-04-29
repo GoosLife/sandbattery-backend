@@ -20,6 +20,7 @@ public class SandbatteryDbContext : DbContext
     public DbSet<PriceEntryEntity> PriceEntries => Set<PriceEntryEntity>();
     public DbSet<HeartbeatEntity> Heartbeats => Set<HeartbeatEntity>();
     public DbSet<SensorConfigEntity> SensorConfigs => Set<SensorConfigEntity>();
+    public DbSet<EnergyReadingEntity> EnergyReadings => Set<EnergyReadingEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

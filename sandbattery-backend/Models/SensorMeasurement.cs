@@ -40,11 +40,32 @@ public class SensorMeasurement
     [JsonPropertyName("power_w")]
     public float PowerW { get; set; }
 
-    [JsonPropertyName("energy_kwh")]
-    public float EnergyKwh { get; set; }
-
     [JsonPropertyName("status")]
     public string Status { get; set; } = "OK";
+}
+
+public class EnergyReading
+{
+    [JsonPropertyName("timestamp")]
+    public string Timestamp { get; set; } = string.Empty;
+
+    [JsonPropertyName("energy_kwh")]
+    public float EnergyKwh { get; set; }
+}
+
+public class EnergyHistory
+{
+    [JsonPropertyName("from")]
+    public string From { get; set; } = string.Empty;
+
+    [JsonPropertyName("to")]
+    public string To { get; set; } = string.Empty;
+
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
+
+    [JsonPropertyName("data")]
+    public List<EnergyReading> Data { get; set; } = [];
 }
 
 public class DataHistory

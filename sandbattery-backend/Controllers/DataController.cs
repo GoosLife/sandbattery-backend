@@ -66,4 +66,45 @@ public class DataController : ControllerBase
         var saved = await _dataService.AddMeasurementAsync(DeviceId, body);
         return StatusCode(StatusCodes.Status201Created, saved);
     }
+
+    [HttpGet("energy/latest")]
+    public async Task<IActionResult> GetLatestEnergy()
+    {
+        var reading = await _dataService.GetLatestEnergyAsync(DeviceId);
+
+        if (reading is null)
+            return NotFound(new { error = "Ingen energimålinger fundet for denne enhed" });
+
+        return Ok(reading);
+    }
+
+    [HttpGet("energy/history")]
+    public async Task<IActionResult> GetEnergyHistory(
+        [FromQuery] string? from,
+        [FromQuery] string? to,
+        [FromQuery] int limit = 1000)
+    {
+        if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to))
+            return BadRequest(new { error = "Parametrene 'from' og 'to' er påkrævede" });
+
+        if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate))
+            return BadRequest(new { error = "Ugyldigt datoformat – brug ISO 8601" });
+
+        limit = Math.Clamp(limit, 1, 5000);
+
+        var history = await _dataService.GetEnergyHistoryAsync(
+            DeviceId, fromDate.ToUniversalTime(), toDate.ToUniversalTime(), limit);
+
+        return Ok(history);
+    }
+
+    [HttpPost("energy")]
+    public async Task<IActionResult> PostEnergy([FromBody] EnergyReading body)
+    {
+        if (string.IsNullOrEmpty(body.Timestamp))
+            return BadRequest(new { error = "Feltet 'timestamp' er påkrævet" });
+
+        var saved = await _dataService.AddEnergyReadingAsync(DeviceId, body);
+        return StatusCode(StatusCodes.Status201Created, saved);
+    }
 }
