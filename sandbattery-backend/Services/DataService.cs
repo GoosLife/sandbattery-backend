@@ -78,7 +78,7 @@ public class DataService : IDataService
         var entity = new SensorMeasurementEntity
         {
             DeviceId = deviceId,
-            Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
+            Timestamp = ResolveTimestamp(dto.Timestamp),
             PowerW = dto.PowerW,
             Status = status,
             TemperatureReadings = dto.Temperatures.Select(t => new TemperatureSensorReadingEntity
@@ -191,6 +191,7 @@ public class DataService : IDataService
         if (sandTemp is null) return "OK";
 
         if (sandTemp.Value >= s.MaxSandTemp) return "CRITICAL";
+        if (sandTemp.Value >= s.MaxSandTemp * 0.9f) return "WARNING";
         if (sandTemp.Value < 0) return "WARNING";
 
         return "OK";
@@ -232,13 +233,24 @@ public class DataService : IDataService
         var entity = new EnergyReadingEntity
         {
             DeviceId = deviceId,
-            Timestamp = DateTime.Parse(dto.Timestamp, null, DateTimeStyles.RoundtripKind),
+            Timestamp = ResolveTimestamp(dto.Timestamp),
             EnergyKwh = dto.EnergyKwh
         };
 
         _db.EnergyReadings.Add(entity);
         await _db.SaveChangesAsync();
         return MapEnergyToDto(entity);
+    }
+
+    private static DateTime ResolveTimestamp(string raw)
+    {
+        if (DateTime.TryParse(raw, null, DateTimeStyles.RoundtripKind, out var parsed))
+        {
+            var utc = parsed.ToUniversalTime();
+            if (Math.Abs((utc - DateTime.UtcNow).TotalSeconds) <= 30)
+                return utc;
+        }
+        return DateTime.UtcNow;
     }
 
     private static EnergyReading MapEnergyToDto(EnergyReadingEntity e) => new()

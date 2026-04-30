@@ -13,11 +13,12 @@ public class SettingsServiceTests
     {
         await using var db = DbContextFactory.Create();
         // Seed device but no settings row
-        db.Devices.Add(new Data.Entities.DeviceEntity { ProductKey = ProductKey, DeviceName = "Test" });
+        var device = new Data.Entities.DeviceEntity { ProductKey = ProductKey, DeviceName = "Test" };
+        db.Devices.Add(device);
         await db.SaveChangesAsync();
 
         var service = new SettingsService(db);
-        var settings = await service.GetSettingsAsync(ProductKey);
+        var settings = await service.GetSettingsAsync(device.Id);
 
         Assert.Equal(70.0f, settings.MaxSandTemp);
         Assert.Equal(50.0f, settings.MinPumpTemp);
@@ -31,10 +32,10 @@ public class SettingsServiceTests
     public async Task UpdateSettings_PartialUpdate_OnlyUpdatesSpecifiedFields()
     {
         await using var db = DbContextFactory.Create();
-        await DbContextFactory.SeedDeviceAsync(db, ProductKey);
+        var deviceId = await DbContextFactory.SeedDeviceAsync(db, ProductKey);
 
         var service = new SettingsService(db);
-        var (success, updatedFields) = await service.UpdateSettingsAsync(ProductKey, new SettingsUpdateRequest
+        var (success, updatedFields) = await service.UpdateSettingsAsync(deviceId, new SettingsUpdateRequest
         {
             PumpIntervalSeconds = 600,
             PriceLimitDkk = 2.50f
@@ -45,7 +46,7 @@ public class SettingsServiceTests
         Assert.Contains("pump_interval_seconds", updatedFields);
         Assert.Contains("price_limit_dkk", updatedFields);
 
-        var settings = await service.GetSettingsAsync(ProductKey);
+        var settings = await service.GetSettingsAsync(deviceId);
         Assert.Equal(600, settings.PumpIntervalSeconds);
         Assert.Equal(2.50f, settings.PriceLimitDkk);
         // Untouched fields stay at defaults
@@ -57,10 +58,10 @@ public class SettingsServiceTests
     public async Task UpdateSettings_AllFields_UpdatesAll()
     {
         await using var db = DbContextFactory.Create();
-        await DbContextFactory.SeedDeviceAsync(db, ProductKey);
+        var deviceId = await DbContextFactory.SeedDeviceAsync(db, ProductKey);
 
         var service = new SettingsService(db);
-        var (_, updatedFields) = await service.UpdateSettingsAsync(ProductKey, new SettingsUpdateRequest
+        var (_, updatedFields) = await service.UpdateSettingsAsync(deviceId, new SettingsUpdateRequest
         {
             MaxSandTemp         = 65f,
             MinPumpTemp         = 45f,
@@ -72,7 +73,7 @@ public class SettingsServiceTests
 
         Assert.Equal(6, updatedFields.Count);
 
-        var settings = await service.GetSettingsAsync(ProductKey);
+        var settings = await service.GetSettingsAsync(deviceId);
         Assert.Equal(65f, settings.MaxSandTemp);
         Assert.Equal(45f, settings.MinPumpTemp);
         Assert.Equal(120, settings.PumpIntervalSeconds);
@@ -85,11 +86,11 @@ public class SettingsServiceTests
     public async Task UpdateSettings_NoFields_ReturnsEmptyUpdatedList()
     {
         await using var db = DbContextFactory.Create();
-        await DbContextFactory.SeedDeviceAsync(db, ProductKey);
+        var deviceId = await DbContextFactory.SeedDeviceAsync(db, ProductKey);
 
         var service = new SettingsService(db);
         var (success, updatedFields) =
-            await service.UpdateSettingsAsync(ProductKey, new SettingsUpdateRequest());
+            await service.UpdateSettingsAsync(deviceId, new SettingsUpdateRequest());
 
         Assert.True(success);
         Assert.Empty(updatedFields);
@@ -100,13 +101,14 @@ public class SettingsServiceTests
     {
         await using var db = DbContextFactory.Create();
         // Seed device but no settings row
-        db.Devices.Add(new Data.Entities.DeviceEntity { ProductKey = ProductKey, DeviceName = "Test" });
+        var device = new Data.Entities.DeviceEntity { ProductKey = ProductKey, DeviceName = "Test" };
+        db.Devices.Add(device);
         await db.SaveChangesAsync();
 
         var service = new SettingsService(db);
-        await service.UpdateSettingsAsync(ProductKey, new SettingsUpdateRequest { MaxSandTemp = 60f });
+        await service.UpdateSettingsAsync(device.Id, new SettingsUpdateRequest { MaxSandTemp = 60f });
 
-        var settings = await service.GetSettingsAsync(ProductKey);
+        var settings = await service.GetSettingsAsync(device.Id);
         Assert.Equal(60f, settings.MaxSandTemp);
     }
 }

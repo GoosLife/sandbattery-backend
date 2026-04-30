@@ -21,14 +21,20 @@ public static class DbContextFactory
 
     /// <summary>
     /// Seeds a test device and its default settings into the context.
+    /// Returns the generated device ID.
     /// </summary>
-    public static async Task SeedDeviceAsync(
+    public static async Task<int> SeedDeviceAsync(
         SandbatteryDbContext db,
         string productKey = "TEST-0001",
         string deviceName = "Test Sandbatteri")
     {
-        db.Devices.Add(new DeviceEntity { ProductKey = productKey, DeviceName = deviceName });
-        db.Settings.Add(new SettingsEntity { ProductKey = productKey });
+        var device = new DeviceEntity { ProductKey = productKey, DeviceName = deviceName };
+        db.Devices.Add(device);
         await db.SaveChangesAsync();
+
+        db.Settings.Add(new SettingsEntity { DeviceId = device.Id });
+        await db.SaveChangesAsync();
+
+        return device.Id;
     }
 }

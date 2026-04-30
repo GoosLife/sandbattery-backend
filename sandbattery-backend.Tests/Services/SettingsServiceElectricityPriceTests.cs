@@ -12,7 +12,7 @@ public class SettingsServiceElectricityPriceTests
     public async Task GetElectricityPrice_MatchingRow_ReturnsPriceWithEntries()
     {
         await using var db = DbContextFactory.Create();
-        await DbContextFactory.SeedDeviceAsync(db, ProductKey);
+        _ = await DbContextFactory.SeedDeviceAsync(db, ProductKey);
 
         var ep = new ElectricityPriceEntity
         {
@@ -43,7 +43,7 @@ public class SettingsServiceElectricityPriceTests
     public async Task GetElectricityPrice_NoMatchingRow_ReturnsNull()
     {
         await using var db = DbContextFactory.Create();
-        await DbContextFactory.SeedDeviceAsync(db, ProductKey);
+        _ = await DbContextFactory.SeedDeviceAsync(db, ProductKey);
         var service = new SettingsService(db);
 
         var result = await service.GetElectricityPriceAsync("2025-06-01", "DK2");
