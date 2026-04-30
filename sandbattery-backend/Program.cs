@@ -39,6 +39,7 @@ builder.Services.AddScoped<IEventsService, EventsService>();
 // ── Background services ───────────────────────────────────────────────────────
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<ElectricityPriceFetcherService>();
+builder.Services.AddHostedService<AutomationService>();
 
 var app = builder.Build();
 

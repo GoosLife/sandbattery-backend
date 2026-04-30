@@ -34,6 +34,30 @@ public class ControlService : IControlService
     public async Task<(bool Success, ControlCommandResponse? Result, bool TempExceeded)> ControlPumpAsync(
         int deviceId, PumpAction action, CommandSource source)
     {
+        // Pump cannot be stopped while sand temperature is at or above the safety limit
+        if (action == PumpAction.stop)
+        {
+            var latest = await _db.SensorMeasurements
+                .Include(m => m.TemperatureReadings)
+                .Where(m => m.DeviceId == deviceId)
+                .OrderByDescending(m => m.Timestamp)
+                .FirstOrDefaultAsync();
+
+            var settings = await _db.Settings
+                .FirstOrDefaultAsync(s => s.DeviceId == deviceId)
+                ?? new SettingsEntity { DeviceId = deviceId };
+
+            if (latest is not null)
+            {
+                var sandTemp = latest.TemperatureReadings
+                    .FirstOrDefault(t => t.Label.Equals("sand", StringComparison.OrdinalIgnoreCase))
+                    ?? latest.TemperatureReadings.MinBy(t => t.SensorIndex);
+
+                if (sandTemp is not null && sandTemp.Value >= settings.MaxSandTemp)
+                    return (false, null, true);
+            }
+        }
+
         var active = action == PumpAction.start;
         var ev = await UpdateActuatorAndLogEvent(deviceId, "pump", 0, active, source);
 
