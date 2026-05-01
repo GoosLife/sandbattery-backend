@@ -50,83 +50,32 @@ public class AutomationService : BackgroundService
             .FirstOrDefaultAsync(s => s.DeviceId == deviceId, ct)
             ?? new SettingsEntity { DeviceId = deviceId };
 
-        var recentReadings = await db.SensorMeasurements
-            .Include(m => m.TemperatureReadings)
-            .Include(m => m.FlowRateReadings)
-            .Where(m => m.DeviceId == deviceId && m.Timestamp >= DateTime.UtcNow.AddSeconds(-30))
-            .ToListAsync(ct);
-
-        if (recentReadings.Count == 0) return;
-
-        var allTempReadings = recentReadings
-            .SelectMany(m => m.TemperatureReadings)
-            .GroupBy(t => t.SensorIndex);
-
-        foreach (var group in allTempReadings)
-        {
-            if (group.All(t => t.Value == -127))
-            {
-                var alertType = $"SENSOR_OFFLINE_{group.Key}";
-                var hasAlert = await db.Alerts
-                    .AnyAsync(a => a.DeviceId == deviceId && a.Type == alertType && !a.Acknowledged, ct);
-
-                if (!hasAlert)
-                {
-                    db.Alerts.Add(new AlertEntity
-                    {
-                        DeviceId = deviceId,
-                        Severity = "WARNING",
-                        Type = alertType,
-                        Message = $"Sensor {group.Key} rapporterer -127°C i over 30 sekunder.",
-                        Timestamp = DateTime.UtcNow,
-                        Acknowledged = false
-                    });
-                }
-            }
-        }
-
-        // ── MON2: Flow = 0 while pump active for >30s ────────────────────────
-        var pumpActive = await db.ActuatorStatuses
-            .AnyAsync(a => a.DeviceId == deviceId && a.Actuator == "pump" && a.Active, ct);
-
-        if (pumpActive)
-        {
-            var allFlowReadings = recentReadings
-                .SelectMany(m => m.FlowRateReadings)
-                .GroupBy(f => f.SensorIndex);
-
-            foreach (var group in allFlowReadings)
-            {
-                if (group.All(f => f.Value == 0))
-                {
-                    var alertType = $"FLOW_ZERO_PUMP_ACTIVE_{group.Key}";
-                    var hasAlert = await db.Alerts
-                        .AnyAsync(a => a.DeviceId == deviceId && a.Type == alertType && !a.Acknowledged, ct);
-
-                    if (!hasAlert)
-                    {
-                        db.Alerts.Add(new AlertEntity
-                        {
-                            DeviceId = deviceId,
-                            Severity = "WARNING",
-                            Type = alertType,
-                            Message = $"Flow sensor {group.Key} rapporterer 0 L/min i over 30 sekunder mens pumpen er aktiv.",
-                            Timestamp = DateTime.UtcNow,
-                            Acknowledged = false
-                        });
-                    }
-                }
-            }
-        }
-
-        await db.SaveChangesAsync(ct);
-
-        // ── Auto heater control ───────────────────────────────────────────────
         var latest = await db.SensorMeasurements
             .Include(m => m.TemperatureReadings)
             .Where(m => m.DeviceId == deviceId)
             .OrderByDescending(m => m.Timestamp)
             .FirstOrDefaultAsync(ct);
+
+        // Sensors offline: no measurement received for 30 seconds
+        if (latest is not null && latest.Timestamp < DateTime.UtcNow.AddSeconds(-30))
+        {
+            var hasActiveOfflineAlert = await db.Alerts
+                .AnyAsync(a => a.DeviceId == deviceId && a.Type == "SENSORS_OFFLINE" && !a.Acknowledged, ct);
+
+            if (!hasActiveOfflineAlert)
+            {
+                db.Alerts.Add(new AlertEntity
+                {
+                    DeviceId = deviceId,
+                    Severity = "WARNING",
+                    Type = "SENSORS_OFFLINE",
+                    Message = "Ingen data modtaget i over 30 sekunder.",
+                    Timestamp = DateTime.UtcNow,
+                    Acknowledged = false
+                });
+                await db.SaveChangesAsync(ct);
+            }
+        }
 
         if (latest is null || !settings.AutoHeatingEnabled) return;
 
@@ -139,6 +88,7 @@ public class AutomationService : BackgroundService
         var now = DateTime.UtcNow;
         var currentHourUtc = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);
 
+        // Get current electricity price (DK2 area)
         var currentPrice = await db.PriceEntries
             .Join(db.ElectricityPrices.Where(ep => ep.Area == "DK2"),
                 pe => pe.ElectricityPriceId,
@@ -154,11 +104,13 @@ public class AutomationService : BackgroundService
 
         if (sandTemp.Value >= settings.MaxSandTemp)
         {
+            // Safety net: temp at limit → ensure auto-activated heaters are off
             foreach (var heater in heaters.Where(h => h.Active && h.Source == CommandSource.rule.ToString()))
                 await control.ControlHeaterAsync(deviceId, heater.ActuatorIndex, HeaterAction.off, CommandSource.rule);
         }
         else if (currentPrice > 0 && currentPrice < settings.PriceLimitDkk)
         {
+            // Cheap electricity + temp below limit → auto turn on heaters
             foreach (var heater in heaters.Where(h => !h.Active))
                 await control.ControlHeaterAsync(deviceId, heater.ActuatorIndex, HeaterAction.on, CommandSource.rule);
         }
