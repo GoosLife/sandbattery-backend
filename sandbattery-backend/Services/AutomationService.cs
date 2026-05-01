@@ -114,18 +114,5 @@ public class AutomationService : BackgroundService
             foreach (var heater in heaters.Where(h => !h.Active))
                 await control.ControlHeaterAsync(deviceId, heater.ActuatorIndex, HeaterAction.on, CommandSource.rule);
         }
-
-        if (settings.AutoPumpEnabled)
-        {
-            var pumpStatus = await db.ActuatorStatuses
-                .FirstOrDefaultAsync(a => a.DeviceId == deviceId && a.Actuator == "pump", ct);
-
-            var secondsSinceChange = (DateTime.UtcNow - pumpStatus.LastChanged).TotalSeconds;
-            var interval = settings.PumpIntervalSeconds; // fx 5
-
-            bool shouldBeOn = !pumpStatus.Active; // toggle
-            if (secondsSinceChange >= interval)
-                await control.ControlPumpAsync(deviceId, shouldBeOn ? PumpAction.start : PumpAction.stop, CommandSource.rule);
-        }
     }
 }
