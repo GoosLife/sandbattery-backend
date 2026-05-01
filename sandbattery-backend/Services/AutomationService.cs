@@ -18,7 +18,7 @@ public class AutomationService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
         while (await timer.WaitForNextTickAsync(stoppingToken))
             await RunAsync(stoppingToken);
     }
@@ -113,6 +113,19 @@ public class AutomationService : BackgroundService
             // Cheap electricity + temp below limit → auto turn on heaters
             foreach (var heater in heaters.Where(h => !h.Active))
                 await control.ControlHeaterAsync(deviceId, heater.ActuatorIndex, HeaterAction.on, CommandSource.rule);
+        }
+
+        if (settings.AutoPumpEnabled)
+        {
+            var pumpStatus = await db.ActuatorStatuses
+                .FirstOrDefaultAsync(a => a.DeviceId == deviceId && a.Actuator == "pump", ct);
+
+            var secondsSinceChange = (DateTime.UtcNow - pumpStatus.LastChanged).TotalSeconds;
+            var interval = settings.PumpIntervalSeconds; // fx 5
+
+            bool shouldBeOn = !pumpStatus.Active; // toggle
+            if (secondsSinceChange >= interval)
+                await control.ControlPumpAsync(deviceId, shouldBeOn ? PumpAction.start : PumpAction.stop, CommandSource.rule);
         }
     }
 }
