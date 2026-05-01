@@ -99,37 +99,63 @@ public class DataService : IDataService
         switch (status)
         {
             case "ERROR":
-                _db.Alerts.Add(new AlertEntity
+                var cutoff = DateTime.UtcNow.AddSeconds(-30);
+                var recentMeasurements = await _db.SensorMeasurements
+                    .Include(m => m.TemperatureReadings)
+                    .Where(m => m.DeviceId == deviceId && m.Timestamp >= cutoff)
+                    .ToListAsync();
+
+                foreach (var t in dto.Temperatures.Where(t => t.Value <= -126))
                 {
-                    DeviceId = deviceId,
-                    Severity = "ERROR",
-                    Type = "SENSOR_ERROR",
-                    Message = "Temperaturmåler ikke forbundet.",
-                    Timestamp = DateTime.UtcNow,
-                    Acknowledged = false
-                });
+                    var allBad = recentMeasurements
+                        .All(m => m.TemperatureReadings
+                            .Any(r => r.SensorIndex == t.Index && r.Value <= -126));
+
+                    if (!allBad) continue;
+
+                    var type = $"SENSOR_OFFLINE_{t.Index}";
+                    var hasAlert = await _db.Alerts
+                        .AnyAsync(a => a.DeviceId == deviceId && a.Type == type && !a.Acknowledged);
+                    if (!hasAlert)
+                        _db.Alerts.Add(new AlertEntity
+                        {
+                            DeviceId = deviceId,
+                            Severity = "ERROR",
+                            Type = type,
+                            Message = $"Temperaturmåler {t.Label} (index {t.Index}) ikke forbundet.",
+                            Timestamp = DateTime.UtcNow,
+                            Acknowledged = false
+                        });
+                }
                 break;
+
             case "WARNING":
-                _db.Alerts.Add(new AlertEntity
-                {
-                    DeviceId = deviceId,
-                    Severity = "WARNING",
-                    Type = "TEMP_LOW",
-                    Message = "Temperaturen er meget lav – tjek om målingerne passer.",
-                    Timestamp = DateTime.UtcNow,
-                    Acknowledged = false
-                });
+                var hasWarnAlert = await _db.Alerts
+                    .AnyAsync(a => a.DeviceId == deviceId && a.Type == "TEMP_LOW" && !a.Acknowledged);
+                if (!hasWarnAlert)
+                    _db.Alerts.Add(new AlertEntity
+                    {
+                        DeviceId = deviceId,
+                        Severity = "WARNING",
+                        Type = "TEMP_LOW",
+                        Message = "Temperaturen er meget lav – tjek om målingerne passer.",
+                        Timestamp = DateTime.UtcNow,
+                        Acknowledged = false
+                    });
                 break;
             case "CRITICAL":
-                _db.Alerts.Add(new AlertEntity
-                {
-                    DeviceId = deviceId,
-                    Severity = "CRITICAL",
-                    Type = "TEMP_LIMIT_EXCEEDED",
-                    Message = $"Maks temperatur overskredet ({sandTemp?.Value:F1}°C). Sandbatteriet nedkøles.",
-                    Timestamp = DateTime.UtcNow,
-                    Acknowledged = false
-                });
+                var hasCritAlert = await _db.Alerts
+                    .AnyAsync(a => a.DeviceId == deviceId && a.Type == "TEMP_LIMIT_EXCEEDED" && !a.Acknowledged);
+                if (!hasCritAlert)
+                    _db.Alerts.Add(new AlertEntity
+                    {
+                        DeviceId = deviceId,
+                        Severity = "CRITICAL",
+                        Type = "TEMP_LIMIT_EXCEEDED",
+                        Message = $"Maks temperatur overskredet ({sandTemp?.Value:F1}°C). Sandbatteriet nedkøles.",
+                        Timestamp = DateTime.UtcNow,
+                        Acknowledged = false
+                    });
                 break;
         }
 
@@ -151,11 +177,11 @@ public class DataService : IDataService
                 await _control.ControlHeaterAsync(deviceId, h.ActuatorIndex, HeaterAction.off, CommandSource.rule);
         }
 
-        // Pump ON + all flow sensors = 0 for 30 seconds → WARNING
+        // Per-sensor flow offline check (pump ON + sensor reads 0 for 30s)
         var pumpOn = await _db.ActuatorStatuses
             .AnyAsync(a => a.DeviceId == deviceId && a.Actuator == "pump" && a.Active);
 
-        if (pumpOn && dto.FlowRates.Count > 0 && dto.FlowRates.All(f => f.Value == 0))
+        if (pumpOn && dto.FlowRates.Count > 0)
         {
             var cutoff = DateTime.UtcNow.AddSeconds(-30);
             var recentMeasurements = await _db.SensorMeasurements
@@ -164,19 +190,32 @@ public class DataService : IDataService
                 .OrderByDescending(m => m.Timestamp)
                 .ToListAsync();
 
-            if (recentMeasurements.Count >= 3 && recentMeasurements.All(m => m.FlowRateReadings.All(f => f.Value == 0)))
+            foreach (var flow in dto.FlowRates)
             {
-                _db.Alerts.Add(new AlertEntity
-                {
-                    DeviceId = deviceId,
-                    Severity = "WARNING",
-                    Type = "PUMP_NO_FLOW",
-                    Message = "Pumpe kører men ingen vandgennemstrømning registreret.",
-                    Timestamp = DateTime.UtcNow,
-                    Acknowledged = false
-                });
-                await _db.SaveChangesAsync();
+                if (flow.Value != 0) continue;
+
+                var allBad = recentMeasurements.All(m => m.FlowRateReadings
+                        .Any(f => f.SensorIndex == flow.Index && f.Value == 0));
+
+                if (!allBad) continue;
+
+                var type = $"FLOW_SENSOR_OFFLINE_{flow.Index}";
+                var hasAlert = await _db.Alerts
+                    .AnyAsync(a => a.DeviceId == deviceId && a.Type == type && !a.Acknowledged);
+
+                if (!hasAlert)
+                    _db.Alerts.Add(new AlertEntity
+                    {
+                        DeviceId = deviceId,
+                        Severity = "WARNING",
+                        Type = type,
+                        Message = $"Flow sensor (index {flow.Index}) registrerer ingen gennemstrømning mens pumpen kører.",
+                        Timestamp = DateTime.UtcNow,
+                        Acknowledged = false
+                    });
             }
+
+            await _db.SaveChangesAsync();
         }
 
         return MapToDto(entity);
@@ -267,7 +306,7 @@ public class DataService : IDataService
             Index = t.SensorIndex,
             Label = t.Label,
             Value = t.Value
-        }).ToList(),
+        }).ToList(),    
         FlowRates = e.FlowRateReadings.OrderBy(f => f.SensorIndex).Select(f => new FlowRateReading
         {
             Index = f.SensorIndex,
