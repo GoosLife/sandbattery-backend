@@ -50,32 +50,47 @@ public class AutomationService : BackgroundService
             .FirstOrDefaultAsync(s => s.DeviceId == deviceId, ct)
             ?? new SettingsEntity { DeviceId = deviceId };
 
+        var recentReadings = await db.SensorMeasurements
+            .Include(m => m.TemperatureReadings)
+            .Where(m => m.DeviceId == deviceId && m.Timestamp >= DateTime.UtcNow.AddSeconds(-30))
+            .ToListAsync(ct);
+
+        if (recentReadings.Count == 0) return;
+
+        var allReadings = recentReadings
+            .SelectMany(m => m.TemperatureReadings)
+            .GroupBy(t => t.SensorIndex);
+
+        foreach (var group in allReadings)
+        {
+            if (group.All(t => t.Value == -127))
+            {
+                var alertType = $"SENSOR_OFFLINE_{group.Key}";
+                var hasAlert = await db.Alerts
+                    .AnyAsync(a => a.DeviceId == deviceId && a.Type == alertType && !a.Acknowledged, ct);
+
+                if (!hasAlert)
+                {
+                    db.Alerts.Add(new AlertEntity
+                    {
+                        DeviceId = deviceId,
+                        Severity = "WARNING",
+                        Type = alertType,
+                        Message = $"Sensor {group.Key} rapporterer -127°C i over 30 sekunder.",
+                        Timestamp = DateTime.UtcNow,
+                        Acknowledged = false
+                    });
+                }
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+
         var latest = await db.SensorMeasurements
             .Include(m => m.TemperatureReadings)
             .Where(m => m.DeviceId == deviceId)
             .OrderByDescending(m => m.Timestamp)
             .FirstOrDefaultAsync(ct);
-
-        // Sensor offline: no measurement received for 30 seconds
-        if (latest is not null && latest.Timestamp < DateTime.UtcNow.AddSeconds(-30))
-        {
-            var hasActiveOfflineAlert = await db.Alerts
-                .AnyAsync(a => a.DeviceId == deviceId && a.Type == "SENSOR_OFFLINE" && !a.Acknowledged, ct);
-
-            if (!hasActiveOfflineAlert)
-            {
-                db.Alerts.Add(new AlertEntity
-                {
-                    DeviceId = deviceId,
-                    Severity = "WARNING",
-                    Type = "SENSOR_OFFLINE",
-                    Message = "Ingen temperaturdata modtaget i over 30 sekunder.",
-                    Timestamp = DateTime.UtcNow,
-                    Acknowledged = false
-                });
-                await db.SaveChangesAsync(ct);
-            }
-        }
 
         if (latest is null || !settings.AutoHeatingEnabled) return;
 
