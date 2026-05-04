@@ -237,7 +237,7 @@ public class DataService : IDataService
     }
 
     private static TemperatureReading? SandTempReading(SensorMeasurement m) =>
-        m.Temperatures.FirstOrDefault(t => t.Label.Equals("sand", StringComparison.OrdinalIgnoreCase))
+        m.Temperatures.FirstOrDefault(t => t.Label.Equals("sand_side", StringComparison.OrdinalIgnoreCase))
         ?? m.Temperatures.MinBy(t => t.Index);
 
     public async Task<EnergyReading?> GetLatestEnergyAsync(int deviceId)
